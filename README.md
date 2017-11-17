@@ -27,3 +27,7 @@ The cygwin runtime uses malloc() and brk() extensively.  It is
 interesting to compare the output of test1 & myAllocatorTest1.  All
 those extra allocated regions are being used by cygwin's libraries!
 
+
+************UPDATE ****************
+
+implemented bestFit & modify resize reagion to account for the issues
