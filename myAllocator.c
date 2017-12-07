@@ -3,6 +3,7 @@
 #include <assert.h>
 #include <unistd.h>
 #include "myAllocator.h"
+#include <string.h>
 
 /*
   This is a simple endogenous first-fit allocator.  
@@ -270,37 +271,49 @@ void freeRegion(void *r) {
 */
 void *resizeRegion(void *r, size_t totalWantedSize) {
   int oldSize;
+  // shit different from tom's miising prefix old
   if (r != (void *)0)		/* old region existed */
+   // region = r;
     oldSize = computeUsableSpace(regionToPrefix(r));
   else
     oldSize = 0;		/* non-existant regions have size 0 */
   if (oldSize >= totalWantedSize)	/* old region is big enough */
     return r;
-  else {			/* allocate new region & copy old data */
-      /*************************************************************************/
+   			/* allocate new region & copy old data */
+      /******************************************************************/
       int usableSpace = computeUsableSpace(getNextPrefix(regionToPrefix(r)));
       if( (usableSpace + oldSize) >= totalWantedSize){
-          void * orgPrefx = regionToPrefix(r);
-          int neededSpace = totalWantedSize - oldSize;
-          int usable = usableSpace - neededSpace;
+          if(getNextPrefix(regionToPrefix(r))->allocated == 0){
+              regionToPrefix(r) -> allocated =0;
+              BlockPrefix_t *shit = coalescePrev(getNextPrefix(regionToPrefix(r)));
+        //  }
+         BlockPrefix_t *p; 
+         p = shit;		/* find a block */
+          if (p) {			/* found a block */
+            size_t availSize = computeUsableSpace(p);
+            size_t asize = align8(totalWantedSize);
+                if (availSize >= (asize + prefixSize + suffixSize + 8)) { /* split block? */
+                    void *freeSliverStart = (void *)p + prefixSize + suffixSize + asize;
+                    void *freeSliverEnd = computeNextPrefixAddr(p);
+                    makeFreeBlock(freeSliverStart, freeSliverEnd - freeSliverStart);
+                    makeFreeBlock(p, freeSliverStart - (void *)p); /* piece being allocated */
+                }
+          }
           
-          BlockPrefix_t * newPrefx = makeFreeBlock(getNextPrefix(orgPrefx) + neededSpace,usable);
-          BlockSuffix_t * newSufx = computePrevSuffixAddr(newPrefx);
-          
-          newSufx -> prefix = (orgPrefx);
-          orgPrefx = newSufx;
-          
-          return orgPrefx;
+        regionToPrefix(r)->allocated = 1;
+        return coalesce;
       }
-      /*************************************************************************/
+    }
+      /******************************************************************/
     char *o = (char *)r;	/* treat both regions as char* */
-    char *n = (char *)firstFitAllocRegion(totalWantedSize); 
-    int i;
+    char *n = (char *)bestFitAllocRegion(totalWantedSize); 
+  /*  int i;
     for (i = 0; i < oldSize; i++) /* copy byte-by-byte, should use memcpy */
-      n[i] = o[i];
+  //    n[i] = o[i];
+    memcpy(n,o,oldSize);
     freeRegion(o);		/* free old region */
     return (void *)n;
-  }
+  
 }
 
 BlockPrefix_t * findBestFit(size_t s){
@@ -327,6 +340,7 @@ BlockPrefix_t * findBestFit(size_t s){
 }
 
 void * bestFitAllocRegion(size_t s){
+//    printf("DOING BEST FIT;)\n");
     size_t asize = align8(s);
     BlockPrefix_t * p;
     if(arenaBegin == 0)

@@ -28,6 +28,10 @@ interesting to compare the output of test1 & myAllocatorTest1.  All
 those extra allocated regions are being used by cygwin's libraries!
 
 
-************UPDATE ****************
+************UPDATE 1****************
 
 implemented bestFit & modify resize reagion to account for the issues
+
+************UPDATE 2****************
+
+fix resize region, Tom help me understand.
